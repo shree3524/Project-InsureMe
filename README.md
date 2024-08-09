@@ -1,4 +1,4 @@
- #  $$\color{red}  \textbf{Project} \ \  \textbf{InsureMe}$$
+ #  $$\color{blue}  \textbf{Project} \ \  \textbf{InsureMe}$$
  
 
 InsureMe was having trouble managing their software because it was all one big piece. </br>
@@ -6,11 +6,8 @@ As they grew bigger, it became even harder to manage. <br>
 
 ### $\color{orange} \textbf{Requirements}$
 
-#### 1. Automated Deployment:</br>
-Whenever a developer makes changes to the code and pushes them to the master branch of the Git repository, </br>
-Jenkins should automatically start a deployment process.
-</br>
-#### 2. CI/CD Pipeline: </br>
+
+#### 1. CI/CD Pipeline: </br>
 Jenkins should: </br>
 
 * Check out the latest code from the master branch.
@@ -27,20 +24,6 @@ With DevOps Approch I used several devops tools such as  <br>
 - AWS: Provided infrastructure for hosting and deploying the application. </br>
  Together, these tools streamlined development, testing, and deployment, ensuring efficient management of the InsureMe project. </br>
 
-### $\color{orange} \textbf{Project} \\ \textbf{Summary}$
-
-- Create two EC2 instances on Amazon Web Services (AWS): one called Master and the other called Node.
-- These servers will host application and manage its deployment.
-- Install Jenkins on the Master server to automate the process of building, testing, and deploying application.
-- Set up Jenkins to watch your code repository on GitHub.
-- Whenever someone makes changes to the code and pushes them to GitHub, Jenkins automatically kicks off a process to update and deploy application.
-- Used Docker to package application and its dependencies into a container, making it easy to deploy and run anywhere.
-- After that write a pipeline in Jenkins to build, test, and deploy your application automatically.
-- This pipeline runs every time someone makes changes to the code, ensuring that the latest version of your application is always available.
-- Whenever someone pushes changes to the code, Jenkins pulls the latest code, builds the application, creates a Docker image, and pushes it to DockerHub (a service for storing Docker images).
-- Then, it deploys the updated application to your servers on AWS using Ansible, a tool for automating server configuration.
-- With this setup, you  can fully automated process for building, testing, and deploying your application.
-- Whenever someone make changes to the code, Jenkins takes care of the rest, ensuring that your application is always up-to-date and running smoothly on your servers.</p>
 
 # $\color{red} \ \textbf{Steps}$
 ## $\color{green} \textbf {Tech Stack}$
@@ -51,9 +34,9 @@ With DevOps Approch I used several devops tools such as  <br>
 ✓ Ansible - Configuration management tools  </br>
 
 ## $\color{bluew} \textbf{step 1: Create Infrastructure}$
-Create two ec2 instance 
-1. Master
-2. Worker 
+Create an instance 
+1. jenkins-server
+
 ### Set Up Master Node
 1. ami = ubuntu
 2. instance type = t2.medium
@@ -64,7 +47,7 @@ Create two ec2 instance
 
 ![SG](https://github.com/kajol2699/Project-InsureMe/assets/130952932/ec2bbe1f-6464-49af-8cdd-cccd6ccca89e)
 
-![NODES](https://github.com/kajol2699/Project-InsureMe/assets/130952932/87c9d3bb-1ff7-4a4f-b521-a11855cbfd52)
+
 
 
    
@@ -120,12 +103,9 @@ $\color{pink}{publicIp:8080}$
 As soon as the developer pushes the updated code on the GIT master branch, the Jenkins job should be triggered using a GitHub Webhook and Jenkins job should be triggered
 In Jenkins Job ->Configuration->choose GitHub hook trigger for GITScm polling
 
-![WEBHOOK-JEN](https://github.com/kajol2699/Project-InsureMe/assets/130952932/81253cac-b3b6-4816-ac18-b044e671ee3d)
 
-To Create Webhook: go to settings of your github repository 
-In Payload URL: Add yours jenkins url
 
-![WEBHOOK](https://github.com/kajol2699/Project-InsureMe/assets/130952932/8d11e27b-39bc-4443-b01c-613290897690)
+
 
 ## $\color{bluew} \textbf{step 3: Install  Docker}$
 ````
@@ -145,57 +125,50 @@ Click "OK" to save your DockerHub credentials. </br>
 
 ```groovy
 pipeline {
-    
-     agent any
+    agent any
 
     stages {
-        stage('Code-Checkout') {
+        stage('code-checkout') {
             steps {
-              checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-token', url: 'https://github.com/abhipraydhoble/Project-InsureMe.git']])
+                git branch: 'main', url: 'https://github.com/shree3524/Project-InsureMe.git'
             }
         }
-        
-        stage('Code-Build') {
+        stage('code-build') {
             steps {
-               sh 'mvn clean package'
+            sh 'mvn clean package'
             }
         }
-        
-        stage('Containerize the application'){
-            steps { 
-               echo 'Creating Docker image'
-               sh "docker build -t abhipraydh96/insure:v1 ."
+        stage('docker') {
+            steps {
+            sh 'docker build -t shree3524/project:p1 .'
+            
             }
         }
-        
-        stage('Docker Push') {
-    	agent any
-          steps {
-       	withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+        stage('Docker-Push') {
+            steps {
+       	       withCredentials([usernamePassword(credentialsId: 'docker-cred', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
             	sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPassword}"
-                sh 'docker push abhipraydh96/insure:v1'
+                sh 'docker push shree0904/project:p1'
+           }
+        }
+      }
+      stage('Code-Deploy') {
+        steps {
+           sh 'docker run -d -p 8089:8081 shree0904/project:p1'
         }
       }
     }
-    
-      
-    stage('Code-Deploy') {
-        steps {
-           ansiblePlaybook credentialsId: 'ansible', installation: 'ansible', playbook: 'ansible-playbook.yml', vaultTmpPath: ''       
-        }
-      }
-    
-   }
 }
-
 
 ```
 
 Build Pipeline:
 
-![BUILD PIPELINE](https://github.com/kajol2699/Project-InsureMe/assets/130952932/c3638768-a2e3-47c8-a691-35e92980d01d)
+![image](https://github.com/user-attachments/assets/f1f5a361-2f4b-464e-916f-e7df9dc6d5a8)
+
 
 
 **Final Output: node ip:container port**
 
-![OUTPUT](https://github.com/kajol2699/Project-InsureMe/assets/130952932/237d1bd2-97df-4451-a69c-11e6c3ef6d12)
+![Screenshot (268)](https://github.com/user-attachments/assets/d83c5b65-7917-4f4a-80f7-b11636714425)
+
